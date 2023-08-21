@@ -166,7 +166,7 @@ HcProxy.prototype.mount = function (router, app) {
       let serviceOpt = u.serviceOpt || service.serviceOpt || {}
 
       return {
-        transformPipe: service.transformPipe,
+        transform: service.transform,
         serviceName,
         pipe,
         path,

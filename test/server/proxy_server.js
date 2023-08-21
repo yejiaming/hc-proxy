@@ -2,28 +2,58 @@ const stream = require('stream');
 const express = require('express');
 const app = express();
 const config = require('../config');
-const { Transform } = require('stream');
 const { Buffer } = require('buffer');
+const { dslResolver } = require('@ali/data-cook');
 
-const upperCaseTransform = new Transform({
-  transform(chunk, encoding, callback) {
-    // 转换后的数据
-    this.push(Buffer.from(chunk.toString('utf-8').toUpperCase()));
-    // 原始的数据
-    // this.push(chunk);
-    callback();
-  }
-});
-
-const upperCaseTransform1 = new Transform({
-  transform(chunk, encoding, callback) {
-    // 转换后的数据
-    this.push(Buffer.from(chunk.toString('utf-8').toUpperCase()));
-    // 原始的数据
-    // this.push(chunk);
-    callback();
-  }
-});
+const upperCaseTransform = (message) => {
+  const messageJSON = JSON.parse(message);
+  const parseJson = dslResolver({
+    data: messageJSON,
+    funcConfig: {
+      dateFormatToTimestamp: (data) => {
+        try {
+          return new Date(`${data.slice(0, 4)}-${data.slice(4, 6)}-${data.slice(6, 8)} ${data.slice(8, 10)}:${data.slice(10, 12)}:${data.slice(12, 14)}:${data.slice(14, 17)}`).getTime();
+        } catch (e) {
+          return data;
+        }
+      }
+    },
+    dsl: {
+      topicId: {
+        _value: '$.ioiId',
+      },
+      time: {
+        _value: '@dateFormatToTimestamp($.stat_time)',
+      },
+      data: [
+        {
+          _source: "$.objs",
+          _iterator: {
+            vehicleId: {
+              _value: "$$.obj_id"
+            },
+            speed: {
+              _value: "$$.speed"
+            },
+            lng: {
+              _value: "$$.lng"
+            },
+            lat: {
+              _value: "$$.lat"
+            },
+            angle: {
+              _value: "$$.angle"
+            },
+            vehicleColorNo: {
+              _value: "$$.vehicleColorNo"
+            },
+          }
+        }
+      ]
+    }
+  });
+  return JSON.stringify(parseJson);
+};
 
 exports.start = (port, callback) => {
   const Proxy = require('../../');
@@ -143,7 +173,7 @@ exports.start = (port, callback) => {
         endpoint: 'http://localhost:' + port,
         client: 'websocket',
         enablePathWithMatch: true,
-        transformPipe: upperCaseTransform,
+        transform: upperCaseTransform,
         api: [
           '/ws',
         ]
@@ -153,7 +183,7 @@ exports.start = (port, callback) => {
         client: 'serviceWebsocket',
         accessKeyId: config.accessKeyId,
         accessKeySecret: config.accessKeySecret,
-        transformPipe: upperCaseTransform1,
+        transform: upperCaseTransform,
         enablePathWithMatch: true,
         api: [
           '/ws',
