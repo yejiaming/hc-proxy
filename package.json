@@ -1,5 +1,5 @@
 {
-  "name": "hc-proxy",
+  "name": "@ai/hc-proxy-middleware",
   "version": "2.0.17",
   "description": "honeycomb api proxy express middleware.",
   "main": "index.js",
